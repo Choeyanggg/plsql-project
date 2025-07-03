@@ -1,0 +1,4 @@
+{
+    "git.enableCommitSigning": false,
+    "git.enabled": true
+}
