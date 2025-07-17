@@ -64,6 +64,51 @@ BEGIN
 END;
 /
 
+-- Function to Get Total Reviews for a Student
+CREATE OR REPLACE FUNCTION get_total_reviews(p_student_id IN NUMBER)
+RETURN NUMBER
+IS
+    v_total_reviews NUMBER;
+BEGIN
+    SELECT COUNT(*)
+    INTO v_total_reviews
+    FROM review_logs r
+    JOIN mentor_assignments a ON r.assignment_id = a.assignment_id
+    WHERE a.student_id = p_student_id;
+
+    RETURN v_total_reviews;
+END;
+/
+
+-- Trigger to automatically log a review when a mentor is assigned
+CREATE OR REPLACE TRIGGER auto_review_on_assignment
+AFTER INSERT ON mentor_assignments
+FOR EACH ROW
+DECLARE
+    v_review_id NUMBER;
+BEGIN
+    SELECT NVL(MAX(review_id), 0) + 1 INTO v_review_id FROM review_logs;
+
+    INSERT INTO review_logs (review_id, assignment_id, remarks)
+    VALUES (v_review_id, :NEW.assignment_id, 'Auto-generated review on mentor assignment.');
+END;
+/
+
+-- Assign mentor
 EXEC assign_mentor(1, 2);
-EXEC log_review(1, 'Initial meeting and goals discussed.');
+
+-- Log a review
+EXEC log_review(1, 'Initial meeting and project discussed.');
+
+-- Get reviews for student 1
 EXEC get_reviews_by_student(1);
+
+-- Get total reviews for student 1
+DECLARE
+    v_count NUMBER;
+BEGIN
+    v_count := get_total_reviews(1);
+    DBMS_OUTPUT.PUT_LINE('Total Reviews: ' || v_count);
+END;
+/
+
