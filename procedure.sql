@@ -1,12 +1,12 @@
 SET SERVEROUTPUT ON;
 
 -- Add sample students
-INSERT INTO students VALUES (1, 'Tenzin');
-INSERT INTO students VALUES (2, 'Priya');
+INSERT INTO students VALUES (1, 'Choeyang');
+INSERT INTO students VALUES (2, 'Dhargyal');
 
 -- Add sample mentors
-INSERT INTO mentors VALUES (1, 'Mr. Sharma');
-INSERT INTO mentors VALUES (2, 'Ms. Kapoor');
+INSERT INTO mentors VALUES (1, 'Mr. Phagyal');
+INSERT INTO mentors VALUES (2, 'Ms. Lhamo');
 
 
 -- Procedure to Assign a Mentor
