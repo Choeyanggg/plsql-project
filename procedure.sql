@@ -1,47 +1,51 @@
-SET SERVEROUTPUT ON;
+-- Sample inserts using sequences
+INSERT INTO students VALUES (student_seq.NEXTVAL, 'Choeyang');
+INSERT INTO students VALUES (student_seq.NEXTVAL, 'Dhargyal');
 
--- Add sample students
-INSERT INTO students VALUES (1, 'Choeyang');
-INSERT INTO students VALUES (2, 'Dhargyal');
+INSERT INTO mentors VALUES (mentor_seq.NEXTVAL, 'Mr. Phagyal');
+INSERT INTO mentors VALUES (mentor_seq.NEXTVAL, 'Ms. Lhamo');
 
--- Add sample mentors
-INSERT INTO mentors VALUES (1, 'Mr. Phagyal');
-INSERT INTO mentors VALUES (2, 'Ms. Lhamo');
-
-
--- Procedure to Assign a Mentor
+-- Assign Mentor Procedure with OUT message
 CREATE OR REPLACE PROCEDURE assign_mentor(
     p_student_id IN NUMBER,
-    p_mentor_id IN NUMBER
+    p_mentor_id IN NUMBER,
+    p_message OUT VARCHAR2
 ) IS
     v_assignment_id NUMBER;
 BEGIN
-    SELECT NVL(MAX(assignment_id), 0) + 1 INTO v_assignment_id FROM mentor_assignments;
+    v_assignment_id := assignment_seq.NEXTVAL;
 
     INSERT INTO mentor_assignments (assignment_id, student_id, mentor_id)
     VALUES (v_assignment_id, p_student_id, p_mentor_id);
 
-    DBMS_OUTPUT.PUT_LINE('Mentor assigned. Assignment ID = ' || v_assignment_id);
+    p_message := 'Mentor assigned successfully. Assignment ID = ' || v_assignment_id;
+EXCEPTION
+    WHEN OTHERS THEN
+        p_message := 'Error assigning mentor: ' || SQLERRM;
 END;
 /
 
--- Procedure to Log a Review
+-- Log Review Procedure with OUT message
 CREATE OR REPLACE PROCEDURE log_review(
     p_assignment_id IN NUMBER,
-    p_remarks IN VARCHAR2
+    p_remarks IN VARCHAR2,
+    p_message OUT VARCHAR2
 ) IS
     v_review_id NUMBER;
 BEGIN
-    SELECT NVL(MAX(review_id), 0) + 1 INTO v_review_id FROM review_logs;
+    v_review_id := review_seq.NEXTVAL;
 
     INSERT INTO review_logs (review_id, assignment_id, remarks)
     VALUES (v_review_id, p_assignment_id, p_remarks);
 
-    DBMS_OUTPUT.PUT_LINE('Review logged successfully. Review ID = ' || v_review_id);
+    p_message := 'Review logged successfully. Review ID = ' || v_review_id;
+EXCEPTION
+    WHEN OTHERS THEN
+        p_message := 'Error logging review: ' || SQLERRM;
 END;
 /
 
--- Procedure to Fetch All Reviews by Student
+-- Procedure to Fetch Reviews by Student (console only)
 CREATE OR REPLACE PROCEDURE get_reviews_by_student(
     p_student_id IN NUMBER
 ) IS
@@ -64,7 +68,7 @@ BEGIN
 END;
 /
 
--- Function to Get Total Reviews for a Student
+-- Function: Get Total Reviews for a Student
 CREATE OR REPLACE FUNCTION get_total_reviews(p_student_id IN NUMBER)
 RETURN NUMBER
 IS
@@ -80,35 +84,17 @@ BEGIN
 END;
 /
 
--- Trigger to automatically log a review when a mentor is assigned
+-- Trigger to Auto-log Review
 CREATE OR REPLACE TRIGGER auto_review_on_assignment
 AFTER INSERT ON mentor_assignments
 FOR EACH ROW
-DECLARE
-    v_review_id NUMBER;
 BEGIN
-    SELECT NVL(MAX(review_id), 0) + 1 INTO v_review_id FROM review_logs;
-
-    INSERT INTO review_logs (review_id, assignment_id, remarks)
-    VALUES (v_review_id, :NEW.assignment_id, 'Auto-generated review on mentor assignment.');
+    INSERT INTO review_logs (
+        review_id, assignment_id, remarks
+    ) VALUES (
+        review_seq.NEXTVAL,
+        :NEW.assignment_id,
+        'Auto-generated review on mentor assignment.'
+    );
 END;
 /
-
--- Assign mentor
-EXEC assign_mentor(1, 2);
-
--- Log a review
-EXEC log_review(1, 'Initial meeting and project discussed.');
-
--- Get reviews for student 1
-EXEC get_reviews_by_student(1);
-
--- Get total reviews for student 1
-DECLARE
-    v_count NUMBER;
-BEGIN
-    v_count := get_total_reviews(1);
-    DBMS_OUTPUT.PUT_LINE('Total Reviews: ' || v_count);
-END;
-/
-
