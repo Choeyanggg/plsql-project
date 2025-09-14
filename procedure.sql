@@ -1,4 +1,5 @@
--- SAMPLE INSERTS (Run only once or skip if using APEX forms)
+SET SERVEROUTPUT ON;
+
 INSERT INTO students 
 VALUES (student_seq.NEXTVAL, 'Choeyang', 'choeyang@email.com', '9876543210', 'CSE', '3rd');
 
@@ -10,6 +11,7 @@ VALUES (mentor_seq.NEXTVAL, 'Mr. Phagyal', 'phagyal@university.edu', '1234567890
 
 INSERT INTO mentors 
 VALUES (mentor_seq.NEXTVAL, 'Ms. Lhamo', 'lhamo@university.edu', '1234567891', 'Electronics');
+
 
 -- PROCEDURE: Assign Mentor and Add Remarks Together
 CREATE OR REPLACE PROCEDURE assign_mentor_with_review(
@@ -38,6 +40,15 @@ EXCEPTION
 END;
 /
 
+DECLARE
+  v_msg VARCHAR2(200);
+BEGIN
+  assign_mentor_with_review(1, 1, 'Initial mentor assignment remark', v_msg);
+  DBMS_OUTPUT.PUT_LINE(v_msg);
+END;
+/
+
+
 -- PROCEDURE: Log Review Separately
 CREATE OR REPLACE PROCEDURE log_review(
     p_assignment_id IN NUMBER,
@@ -58,6 +69,15 @@ EXCEPTION
 END;
 /
 
+DECLARE
+  v_msg VARCHAR2(200);
+BEGIN
+  log_review(1, 'Working on PLSQL', v_msg);
+  DBMS_OUTPUT.PUT_LINE(v_msg);
+END;
+/
+
+
 -- PROCEDURE: View Reviews by Student
 CREATE OR REPLACE PROCEDURE get_reviews_by_student(
     p_student_id IN NUMBER
@@ -74,12 +94,18 @@ BEGIN
     ) LOOP
         DBMS_OUTPUT.PUT_LINE('Student: ' || rec.student_name);
         DBMS_OUTPUT.PUT_LINE('Mentor : ' || rec.mentor_name);
-        DBMS_OUTPUT.PUT_LINE('Date   : ' || rec.review_date);
+        DBMS_OUTPUT.PUT_LINE('Date   : ' || TO_CHAR(rec.review_date, 'DD-MM-YYYY HH24:MI'));
         DBMS_OUTPUT.PUT_LINE('Remarks: ' || rec.remarks);
         DBMS_OUTPUT.PUT_LINE('-----------------------------');
     END LOOP;
 END;
 /
+
+BEGIN
+  get_reviews_by_student(1);
+END;
+/
+
 
 -- FUNCTION: Get Total Reviews by Student
 CREATE OR REPLACE FUNCTION get_total_reviews(p_student_id IN NUMBER)
@@ -97,7 +123,16 @@ BEGIN
 END;
 /
 
--- SMART TRIGGER: Only insert auto review if one doesn't exist
+DECLARE
+  v_total NUMBER;
+BEGIN
+  v_total := get_total_reviews(1);
+  DBMS_OUTPUT.PUT_LINE('Total reviews for student 1: ' || v_total);
+END;
+/
+
+
+-- TRIGGER: Only insert auto review if one doesn't exist
 CREATE OR REPLACE TRIGGER auto_review_on_assignment
 AFTER INSERT ON mentor_assignments
 FOR EACH ROW
@@ -118,5 +153,24 @@ BEGIN
             'Auto-generated review on mentor assignment.'
         );
     END IF;
+END;
+/
+
+-- Test insert to trigger auto review and display it
+DECLARE
+    v_new_assignment_id NUMBER;
+BEGIN
+    v_new_assignment_id := assignment_seq.NEXTVAL;
+    INSERT INTO mentor_assignments (assignment_id, student_id, mentor_id) 
+    VALUES (v_new_assignment_id, 2, 2);
+
+    FOR rec IN (
+        SELECT review_id, remarks, review_date
+        FROM review_logs WHERE assignment_id = v_new_assignment_id
+    ) LOOP
+        DBMS_OUTPUT.PUT_LINE('Auto Review ID: ' || rec.review_id);
+        DBMS_OUTPUT.PUT_LINE('Remarks     : ' || rec.remarks);
+        DBMS_OUTPUT.PUT_LINE('Date        : ' || TO_CHAR(rec.review_date, 'DD-MM-YYYY HH24:MI'));
+    END LOOP;
 END;
 /
